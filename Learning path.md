@@ -14,6 +14,13 @@ Build:
 	•	Simple agent:
 	•	Input → decide → call tool → return result
 
+
+
+
+
+
+
+
 Goal: Make an agent that can act, not just respond - 4 days
 
 Learn:
@@ -27,6 +34,12 @@ Build:
 	•	Web search
 	•	Database query
 
+
+
+
+
+
+
 Goal: True agentic behavior (coordination + roles) - 7 days
 
 Learn:
@@ -38,6 +51,16 @@ Learn:
 
 Build:
 	•	Assignment 1: Supervised Multi-Agent System for Blog Generation
+
+
+
+
+
+
+
+
+
+	
 
 Goal: Make agents stateful and improving - 7 days
 

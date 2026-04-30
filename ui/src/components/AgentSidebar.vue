@@ -1,10 +1,10 @@
 <template>
   <aside class="sidebar" role="navigation" aria-label="Agent selection">
-    <div class="sidebar-section">
-      <h2 class="sidebar-title">Select Agent</h2>
+    <div class="sidebar-section" v-for="group in agentsByDay" :key="group.day">
+      <h2 class="sidebar-title">{{ group.label }}</h2>
       <nav class="agent-list" role="list">
         <button
-          v-for="agent in agents"
+          v-for="agent in group.agents"
           :key="agent.id"
           @click="$emit('select', agent)"
           :class="['agent-button', { 'agent-button--active': isSelected(agent.id) }]"
@@ -30,6 +30,10 @@ export default {
     agents: {
       type: Array,
       required: true
+    },
+    agentsByDay: {
+      type: Array,
+      default: () => []
     },
     selectedAgentId: {
       type: String,
@@ -59,6 +63,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .sidebar-title {

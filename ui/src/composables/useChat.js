@@ -1,8 +1,8 @@
 import { ref, nextTick } from 'vue'
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const REQUEST_TIMEOUT = 60000
+const DEFAULT_API_URL = 'http://localhost:8000'
+const REQUEST_TIMEOUT = 90000
 
 /**
  * Chat management composable
@@ -35,16 +35,17 @@ export function useChat() {
   /**
    * Send message to agent API
    */
-  const sendMessage = async (agentFile, message) => {
+  const sendMessage = async (agentFile, message, apiBaseUrl) => {
     if (!message?.trim()) return
 
+    const baseUrl = apiBaseUrl || DEFAULT_API_URL
     error.value = null
     addMessage('user', 'You', message)
     isLoading.value = true
 
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/api/execute`,
+        `${baseUrl}/api/execute`,
         {
           agent: agentFile,
           input: message.trim()
@@ -93,7 +94,7 @@ export function useChat() {
       return 'Request timed out. The agent took too long to respond.'
     }
     if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-      return 'Cannot connect to server. Please ensure the backend is running on port 8000.'
+      return 'Cannot connect to server. Please ensure the backend is running.'
     }
     return err.response?.data?.error || err.message || 'An unexpected error occurred.'
   }

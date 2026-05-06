@@ -7,7 +7,11 @@ No API key needed — DuckDuckGo is free and local-friendly.
 """
 
 from langchain_core.tools import tool
-from ddgs import DDGS
+
+try:
+    from ddgs import DDGS
+except ModuleNotFoundError:
+    from duckduckgo_search import DDGS
 
 
 @tool

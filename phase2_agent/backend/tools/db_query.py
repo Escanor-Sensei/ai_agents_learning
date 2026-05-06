@@ -13,14 +13,10 @@ Security rules (same as production .NET APIs):
   - Parameterized queries used where inputs are involved
 """
 
-import os
 import pyodbc
-from dotenv import load_dotenv
 from langchain_core.tools import tool
 
-load_dotenv()
-
-_CONNECTION_STRING = os.getenv("DB_CONNECTION_STRING")
+from config.settings import DB_CONNECTION_STRING as _CONNECTION_STRING
 
 
 def _is_safe_query(sql: str) -> bool:

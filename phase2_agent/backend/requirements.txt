@@ -4,6 +4,7 @@ langchain-ollama
 langgraph
 pyodbc
 ddgs
+duckduckgo-search
 python-dotenv
 fastapi
 uvicorn

@@ -64,3 +64,6 @@ desktop.ini
 htmlcov/
 .coverage
 .coverage.*
+
+action-agent/
+phase4/

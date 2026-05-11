@@ -1,0 +1,168 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0f;
+  --surface: #18181b;
+  --border: #2a2a2e;
+  --accent: #aa3bff;
+  --accent-dim: #7c22cc;
+  --text: #e8e8f0;
+  --muted: #888;
+  --error: #ff5555;
+  --radius: 10px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+header { text-align: center; margin-bottom: 2.5rem; }
+header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -.5px; }
+.subtitle { color: var(--muted); font-size: .875rem; margin-top: .4rem; }
+
+/* Form */
+.form { display: flex; gap: .75rem; }
+.topic-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 1rem;
+  padding: .7rem 1rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.topic-input:focus { border-color: var(--accent); }
+.topic-input:disabled { opacity: .5; }
+
+.generate-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: .7rem 1.5rem;
+  transition: background .2s;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.generate-btn:hover:not(:disabled) { background: var(--accent-dim); }
+.generate-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Spinner */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error */
+.error {
+  margin-top: 1rem;
+  background: rgba(255,85,85,.1);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  color: var(--error);
+  padding: .75rem 1rem;
+  font-size: .9rem;
+}
+
+/* Pipeline status */
+.pipeline-status { margin-top: 2rem; text-align: center; }
+.pulse-row { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: .75rem; }
+.pulse-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: .3rem .9rem;
+  font-size: .8rem;
+  color: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.pulse-chip:nth-child(2) { animation-delay: .2s; }
+.pulse-chip:nth-child(3) { animation-delay: .4s; }
+.pulse-chip:nth-child(4) { animation-delay: .6s; }
+@keyframes pulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+.loading-hint { color: var(--muted); font-size: .85rem; }
+
+/* Result */
+.result { margin-top: 2rem; display: flex; flex-direction: column; gap: .75rem; }
+
+.meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .65rem 1rem;
+  font-size: .85rem;
+  color: var(--muted);
+}
+.meta-bar strong { color: var(--text); }
+.feedback-badge {
+  margin-left: auto;
+  background: rgba(170,59,255,.15);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  cursor: help;
+  font-size: .78rem;
+  padding: .2rem .7rem;
+}
+
+/* Sections */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.section.highlight { border-color: var(--accent); }
+
+.section-header {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .75rem 1rem;
+  font-size: .95rem;
+  font-weight: 600;
+  text-align: left;
+}
+.section-header:hover { background: rgba(255,255,255,.03); }
+.chevron { color: var(--muted); font-size: .75rem; }
+
+.section-body {
+  border-top: 1px solid var(--border);
+  color: #ccc;
+  font-family: inherit;
+  font-size: .875rem;
+  line-height: 1.7;
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

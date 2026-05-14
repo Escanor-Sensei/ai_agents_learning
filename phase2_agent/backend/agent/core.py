@@ -8,14 +8,11 @@ Responsible for building the ReAct agent graph.
   Nothing here knows about CLI, sessions, or user input — pure construction.
 """
 
-import os
-from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 
 from tools import all_tools
 from memory import create_memory
-
-MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+from agent.llm import get_llm, get_model_name
 
 _SYSTEM_PROMPT = """You are a helpful assistant. Use tools when needed. Be concise.
 
@@ -52,7 +49,7 @@ def build_agent():
       Like a factory method returning a fully configured IAgentService.
       Caller doesn't need to know how LLM, tools, or memory are assembled.
     """
-    llm = ChatOllama(model=MODEL)
+    llm = get_llm()
     memory = create_memory()
 
     agent = create_react_agent(
@@ -62,4 +59,4 @@ def build_agent():
         prompt=_SYSTEM_PROMPT,
     )
 
-    return agent, all_tools, MODEL
+    return agent, all_tools, get_model_name()

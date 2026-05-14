@@ -13,6 +13,9 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="langgraph")
 warnings.filterwarnings("ignore", message=".*allowed_objects.*")
 
+from dotenv import load_dotenv
+load_dotenv()  # Must be first — loads LANGCHAIN_* vars before LangChain imports
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 

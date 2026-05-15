@@ -2,6 +2,13 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
+class ModeratorRouteDecision(BaseModel):
+    next_phase: Literal["rebuttal", "closing", "end"] = Field(
+        description="Next phase of the debate: 'rebuttal' for another rebuttal round, 'closing' to move to closing statements, 'end' to skip directly to verdict"
+    )
+    reason: str = Field(description="Brief reason for this routing decision")
+
+
 class ModeratorDecision(BaseModel):
     pro_summary: str = Field(description="2-3 sentence summary of Pro agent's overall argument")
     con_summary: str = Field(description="2-3 sentence summary of Con agent's overall argument")

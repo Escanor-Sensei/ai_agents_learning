@@ -11,6 +11,8 @@ const ROUND_LABELS = {
   con_closing:  '🏁 Closing — Con',
 }
 
+const ARGUMENT_NODES = new Set(['pro_opening', 'con_opening', 'pro_rebuttal', 'con_rebuttal', 'pro_closing', 'con_closing'])
+
 function ArgumentCard({ round, side, text, active }) {
   const [open, setOpen] = useState(true)
   return (
@@ -49,7 +51,7 @@ export default function App() {
     setError('')
     setCards([])
     setResult(null)
-    setStatus('')
+    setStatus('⏳ Preparing the debate...')
     activeNodeRef.current = null
 
     try {
@@ -86,7 +88,7 @@ export default function App() {
           if (event.type === 'label') {
             setStatus(event.text)
             activeNodeRef.current = event.node
-            if (event.node !== 'moderator')
+            if (ARGUMENT_NODES.has(event.node))
               setCards(prev => [...prev, { round: event.node, side: event.node.startsWith('pro') ? 'Pro' : 'Con', text: '' }])
           }
 
@@ -122,32 +124,33 @@ export default function App() {
 
   return (
     <div className="app">
-      <header>
-        <h1>⚖️ Debate Arena</h1>
-        <p className="subtitle">Multi-agent debate with memory — Pro vs Con</p>
-      </header>
+      <div className="sticky-top">
+        <header>
+          <h1>⚖️ Debate Arena</h1>
+          <p className="subtitle">Multi-agent debate with memory — Pro vs Con</p>
+        </header>
 
-      <form className="form" onSubmit={handleDebate}>
-        <input
-          className="topic-input"
-          placeholder="Enter a debate topic…"
-          value={topic}
-          onChange={e => setTopic(e.target.value)}
-          disabled={running}
-        />
-        <button className="debate-btn" type="submit" disabled={running || topic.trim().length < 3}>
-          {running ? <span className="spinner" /> : 'Debate'}
-        </button>
-      </form>
+        <form className="form" onSubmit={handleDebate}>
+          <input
+            className="topic-input"
+            placeholder="Enter a debate topic…"
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            disabled={running}
+          />
+          <button className="debate-btn" type="submit" disabled={running || topic.trim().length < 3}>
+            {running ? <span className="spinner" /> : 'Debate'}
+          </button>
+        </form>
+        {error && <div className="error">⚠ {error}</div>}
 
-      {error && <div className="error">⚠ {error}</div>}
-
-      {status && (
-        <div className="status-bar">
-          <span className="status-dot" />
-          {status}
-        </div>
-      )}
+        {status && (
+          <div className="status-bar">
+            <span className="status-dot" />
+            {status}
+          </div>
+        )}
+      </div>
 
       {cards.length > 0 && (
         <div className="arguments">

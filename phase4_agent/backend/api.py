@@ -37,13 +37,14 @@ app.add_middleware(
 _graph = build_graph()
 
 TURN_LABELS = {
-    "pro_opening":  "🎤 Pro Agent is presenting opening arguments...",
-    "con_opening":  "🎤 Con Agent is presenting opening arguments...",
-    "pro_rebuttal": "⚔️  Pro Agent is rebutting...",
-    "con_rebuttal": "⚔️  Con Agent is rebutting...",
-    "pro_closing":  "🏁 Pro Agent is giving closing remarks...",
-    "con_closing":  "🏁 Con Agent is giving closing remarks...",
-    "moderator":    "⚖️  Moderator is evaluating...",
+    "pro_opening":                  "🎤 Pro Agent is presenting opening arguments...",
+    "con_opening":                  "🎤 Con Agent is presenting opening arguments...",
+    "moderator_route": "🧭 Moderator is deciding the next phase...",
+    "pro_rebuttal":    "⚔️  Pro Agent is rebutting...",
+    "con_rebuttal":    "⚔️  Con Agent is rebutting...",
+    "pro_closing":                  "🏁 Pro Agent is giving closing remarks...",
+    "con_closing":                  "🏁 Con Agent is giving closing remarks...",
+    "moderator":                    "⚖️  Moderator is evaluating...",
 }
 
 AGENT_NODES = {
@@ -72,7 +73,6 @@ async def debate_stream(request: DebateRequest):
         initial_state: DebateGraphState = {
             "topic": request.topic,
             "past_debates": [],
-            "current_turn": "",
             "pro_opening": "",
             "con_opening": "",
             "pro_rebuttal": "",
@@ -81,6 +81,7 @@ async def debate_stream(request: DebateRequest):
             "con_closing": "",
             "winner": "",
             "summary": "",
+            "next_phase": "",
         }
 
         current_node = None
@@ -129,7 +130,6 @@ async def debate(request: DebateRequest):
     initial_state: DebateGraphState = {
         "topic": request.topic,
         "past_debates": [],
-        "current_turn": "",
         "pro_opening": "",
         "con_opening": "",
         "pro_rebuttal": "",
@@ -138,6 +138,7 @@ async def debate(request: DebateRequest):
         "con_closing": "",
         "winner": "",
         "summary": "",
+        "next_phase": "",
     }
     try:
         loop = asyncio.get_event_loop()

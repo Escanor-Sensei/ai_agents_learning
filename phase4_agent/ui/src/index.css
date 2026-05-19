@@ -189,6 +189,35 @@ header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -.5px; }
   word-break: break-word;
 }
 
+/* Human review prompt */
+.human-review {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: rgba(170,59,255,0.07);
+  text-align: center;
+}
+.human-review p {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+.human-review-btns { display: flex; gap: 1rem; justify-content: center; }
+.review-btn {
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: .95rem;
+  font-weight: 600;
+  padding: .65rem 1.4rem;
+  transition: opacity .2s;
+}
+.review-btn:hover { opacity: .85; }
+.review-btn.continue { background: #22c55e; color: #fff; }
+.review-btn.redo     { background: #f59e0b; color: #fff; }
+
 /* Result banner */
 .moderator-wrap {
   margin-top: 2rem;

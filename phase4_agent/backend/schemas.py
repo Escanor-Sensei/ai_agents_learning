@@ -16,6 +16,11 @@ class ModeratorDecision(BaseModel):
     justification: str = Field(description="Clear justification for why this side won")
 
 
+class DebateResumeRequest(BaseModel):
+    thread_id: str
+    decision: str = Field(..., pattern="^(continue|redo)$")
+
+
 class DebateRequest(BaseModel):
     topic: str = Field(..., min_length=3, description="The topic to debate")
 

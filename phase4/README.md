@@ -176,6 +176,9 @@ Covered after the core Phase 4 assignments:
 | [07_advanced_patterns.md](./07_advanced_patterns.md) | ReAct, Tree of Thought, Retry + Fallback |
 | [08_guardrails_safety.md](./08_guardrails_safety.md) | Content filtering, ethical considerations |
 | [09_mcp_a2a_protocols.md](./09_mcp_a2a_protocols.md) | MCP & A2A — standard agent protocols |
+| [10_streaming_and_human_in_the_loop.md](./10_streaming_and_human_in_the_loop.md) | Streaming tokens + human approval workflows |
+| [11_map_and_reduce.md](./11_map_and_reduce.md) | Parallel execution with Map & Reduce using `Send` |
+| [12_langgraph_store_long_term_memory.md](./12_langgraph_store_long_term_memory.md) | Long-term memory with LangGraph Store across threads and sessions |
 
 ---
 

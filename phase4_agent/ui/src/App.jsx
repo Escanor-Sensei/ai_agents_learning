@@ -35,85 +35,100 @@ function ArgumentCard({ round, side, text, active }) {
 }
 
 export default function App() {
-  const [topic, setTopic]     = useState('')
-  const [status, setStatus]   = useState('')
-  const [cards, setCards]     = useState([])   // [{ round, side, text }]
-  const [result, setResult]   = useState(null)
-  const [running, setRunning] = useState(false)
-  const [error, setError]     = useState('')
+  const [topic, setTopic]       = useState('')
+  const [status, setStatus]     = useState('')
+  const [cards, setCards]       = useState([])
+  const [result, setResult]     = useState(null)
+  const [running, setRunning]   = useState(false)
+  const [error, setError]       = useState('')
+  const [interrupt, setInterrupt] = useState(null)  // { thread_id }
   const activeNodeRef = useRef(null)
+
+  async function streamFrom(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.detail || 'Request failed')
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop()
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const raw = line.slice(6).trim()
+        if (raw === '[DONE]') { setStatus(''); return }
+
+        const event = JSON.parse(raw)
+
+        if (event.type === 'label') {
+          setStatus(event.text)
+          activeNodeRef.current = event.node
+          if (ARGUMENT_NODES.has(event.node))
+            setCards(prev => [...prev, { round: event.node, side: event.node.startsWith('pro') ? 'Pro' : 'Con', text: '' }])
+        }
+        if (event.type === 'token') {
+          setCards(prev => {
+            const updated = [...prev]
+            if (updated.length > 0)
+              updated[updated.length - 1] = { ...updated[updated.length - 1], text: updated[updated.length - 1].text + event.token }
+            return updated
+          })
+        }
+        if (event.type === 'interrupt') {
+          setInterrupt({ thread_id: event.thread_id })
+          setStatus('')
+          return
+        }
+        if (event.type === 'result') {
+          setResult(event)
+          activeNodeRef.current = null
+        }
+        if (event.type === 'error') throw new Error(event.message)
+      }
+    }
+  }
 
   async function handleDebate(e) {
     e.preventDefault()
     if (topic.trim().length < 3) return
-
     setRunning(true)
     setError('')
     setCards([])
     setResult(null)
     setStatus('⏳ Preparing the debate...')
+    setInterrupt(null)
     activeNodeRef.current = null
-
     try {
-      const res = await fetch(`${API}/debate/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic }),
-      })
+      await streamFrom(`${API}/debate/stream`, { topic })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRunning(false)
+      activeNodeRef.current = null
+    }
+  }
 
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'Request failed')
-      }
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop()
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const raw = line.slice(6).trim()
-          if (raw === '[DONE]') { setStatus(''); break }
-
-          const event = JSON.parse(raw)
-
-          if (event.type === 'label') {
-            setStatus(event.text)
-            activeNodeRef.current = event.node
-            if (ARGUMENT_NODES.has(event.node))
-              setCards(prev => [...prev, { round: event.node, side: event.node.startsWith('pro') ? 'Pro' : 'Con', text: '' }])
-          }
-
-          if (event.type === 'token') {
-            // Append token to the last card
-            setCards(prev => {
-              const updated = [...prev]
-              if (updated.length > 0) {
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  text: updated[updated.length - 1].text + event.token
-                }
-              }
-              return updated
-            })
-          }
-
-          if (event.type === 'result') {
-            setResult(event)
-            activeNodeRef.current = null
-          }
-
-          if (event.type === 'error') throw new Error(event.message)
-        }
-      }
+  async function handleResume(decision) {
+    const thread_id = interrupt.thread_id
+    setInterrupt(null)
+    setRunning(true)
+    setError('')
+    if (decision === 'redo') setCards(prev => prev.filter(c => !c.round.includes('closing')))
+    try {
+      await streamFrom(`${API}/debate/resume`, { thread_id, decision })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -177,6 +192,16 @@ export default function App() {
               })}
             </div>
           ))}
+        </div>
+      )}
+
+      {interrupt && (
+        <div className="human-review">
+          <p>🧑 Closing round complete. What would you like to do?</p>
+          <div className="human-review-btns">
+            <button className="review-btn continue" onClick={() => handleResume('continue')}>✅ Continue to Verdict</button>
+            <button className="review-btn redo" onClick={() => handleResume('redo')}>🔁 Redo Closing Round</button>
+          </div>
         </div>
       )}
 

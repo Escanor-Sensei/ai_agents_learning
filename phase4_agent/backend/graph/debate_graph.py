@@ -1,5 +1,7 @@
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import interrupt
 
 from agents.pro_agent import pro_opening, pro_rebuttal, pro_closing
 from agents.con_agent import con_opening, con_rebuttal, con_closing
@@ -18,6 +20,7 @@ class DebateGraphState(TypedDict):
     winner: str
     summary: str
     next_phase: str
+    human_decision: str
 
 
 # ── nodes ──────────────────────────────────────────────────────────────────
@@ -60,22 +63,30 @@ def con_closing_node(state: DebateGraphState) -> dict:
 def moderator_route_node(state: DebateGraphState) -> dict:
     pro_args = {"opening": state["pro_opening"], "rebuttal": state.get("pro_rebuttal", "")}
     con_args = {"opening": state["con_opening"], "rebuttal": state.get("con_rebuttal", "")}
-    # after_rebuttal=True when rebuttal already happened — restricts options to closing/end only
     after_rebuttal = bool(state.get("pro_rebuttal", ""))
     next_phase = decide_next_phase(state["topic"], pro_args, con_args, after_rebuttal=after_rebuttal)
     return {"next_phase": next_phase}
 
 
+def human_review_node(state: DebateGraphState) -> dict:
+    decision = interrupt("Closing round complete. Continue to verdict or redo closing?")
+    return {"human_decision": decision}
+
+
+def route_human_decision(state: DebateGraphState) -> str:
+    return "moderator" if state["human_decision"] == "continue" else "pro_closing"
+
+
 def moderator_node(state: DebateGraphState) -> dict:
     pro_args = {
-        "opening": state["pro_opening"],
+        "opening":  state["pro_opening"],
         "rebuttal": state.get("pro_rebuttal", ""),
-        "closing": state.get("pro_closing", ""),
+        "closing":  state.get("pro_closing", ""),
     }
     con_args = {
-        "opening": state["con_opening"],
+        "opening":  state["con_opening"],
         "rebuttal": state.get("con_rebuttal", ""),
-        "closing": state.get("con_closing", ""),
+        "closing":  state.get("con_closing", ""),
     }
     decision = declare_winner(state["topic"], pro_args, con_args)
     summary = store_debate(state["topic"], pro_args, con_args, decision)
@@ -95,25 +106,27 @@ def route_after_moderator(state: DebateGraphState) -> str:
 def build_graph():
     graph = StateGraph(DebateGraphState)
 
-    graph.add_node("load_memory", load_memory_node)
-    graph.add_node("pro_opening", pro_opening_node)
-    graph.add_node("con_opening", con_opening_node)
+    graph.add_node("load_memory",     load_memory_node)
+    graph.add_node("pro_opening",     pro_opening_node)
+    graph.add_node("con_opening",     con_opening_node)
     graph.add_node("moderator_route", moderator_route_node)
-    graph.add_node("pro_rebuttal", pro_rebuttal_node)
-    graph.add_node("con_rebuttal", con_rebuttal_node)
-    graph.add_node("pro_closing", pro_closing_node)
-    graph.add_node("con_closing", con_closing_node)
-    graph.add_node("moderator", moderator_node)
+    graph.add_node("pro_rebuttal",    pro_rebuttal_node)
+    graph.add_node("con_rebuttal",    con_rebuttal_node)
+    graph.add_node("pro_closing",     pro_closing_node)
+    graph.add_node("con_closing",     con_closing_node)
+    graph.add_node("human_review",    human_review_node)
+    graph.add_node("moderator",       moderator_node)
 
     graph.add_edge(START, "load_memory")
-    graph.add_edge("load_memory", "pro_opening")
-    graph.add_edge("pro_opening", "con_opening")
-    graph.add_edge("con_opening", "moderator_route")   # moderator decides after openings
+    graph.add_edge("load_memory",     "pro_opening")
+    graph.add_edge("pro_opening",     "con_opening")
+    graph.add_edge("con_opening",     "moderator_route")
     graph.add_conditional_edges("moderator_route", route_after_moderator)
-    graph.add_edge("pro_rebuttal", "con_rebuttal")
-    graph.add_edge("con_rebuttal", "moderator_route")  # same node reused after rebuttal
-    graph.add_edge("pro_closing", "con_closing")
-    graph.add_edge("con_closing", "moderator")
-    graph.add_edge("moderator", END)
+    graph.add_edge("pro_rebuttal",    "con_rebuttal")
+    graph.add_edge("con_rebuttal",    "moderator_route")
+    graph.add_edge("pro_closing",     "con_closing")
+    graph.add_edge("con_closing",     "human_review")
+    graph.add_conditional_edges("human_review", route_human_decision)
+    graph.add_edge("moderator",       END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=MemorySaver())

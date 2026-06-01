@@ -1,31 +1,25 @@
-"""
-API Server — api.py
-Exposes the multi-agent blog generation pipeline as a REST API.
-
-.NET analogy:
-  FastAPI       ≈  ASP.NET Core Web API
-  @app.post     ≈  [HttpPost] controller action
-  CORS          ≈  app.UseCors() middleware
-  BlogRunner    ≈  scoped service injected into the controller
-
-Intentionally simpler than phase2 — no sessions, no DB, no conversation history.
-One endpoint: POST /generate → runs the full pipeline → returns the blog.
-"""
-
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="langgraph")
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import asyncio
+import json
+from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from agent import BlogRunner
+from agent.core import get_graph
+from agent.state import BlogState
 from schemas import BlogRequest, BlogResponse
 
 _executor = ThreadPoolExecutor(max_workers=2)
-TIMEOUT_SECONDS = 300  # 5 min max
+TIMEOUT_SECONDS = 300
 
 app = FastAPI(
     title="Blog Generation Multi-Agent API",
@@ -46,24 +40,89 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+AGENT_LABELS = {
+    "researcher": "🔍 Researcher is gathering information...",
+    "analyst":    "📋 Analyst is building the outline...",
+    "writer":     "✍️  Writer is writing the blog post...",
+    "supervisor": "🧑‍⚖️ Supervisor is reviewing...",
+}
+
+STREAMING_NODES = {"researcher", "analyst", "writer"}
+
 
 # ---------------------------------------------------------------------------
-# Blog Generation
+# Streaming
+# ---------------------------------------------------------------------------
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+async def _stream_generate(topic: str) -> AsyncGenerator:
+    graph = get_graph()
+    initial_state: BlogState = {
+        "topic": topic,
+        "research_notes": "",
+        "outline": "",
+        "blog_post": "",
+        "supervisor_feedback": "",
+        "next_node": "",
+        "retry_count": 0,
+    }
+    current_node = None
+    final_state = {}
+
+    try:
+        async for event in graph.astream_events(initial_state, version="v2"):
+            kind = event["event"]
+            name = event.get("name", "")
+
+            if kind == "on_chain_start" and name in AGENT_LABELS:
+                current_node = name
+                yield _sse({"type": "label", "node": name, "text": AGENT_LABELS[name]})
+
+            elif kind == "on_chat_model_stream" and current_node in STREAMING_NODES:
+                token = event["data"]["chunk"].content
+                if token:
+                    yield _sse({"type": "token", "node": current_node, "token": token})
+
+            elif kind == "on_chain_end" and name == "LangGraph":
+                output = event["data"].get("output", {})
+                if isinstance(output, dict):
+                    final_state = output
+
+        if final_state:
+            yield _sse({
+                "type": "result",
+                "topic": final_state.get("topic", topic),
+                "research_notes": final_state.get("research_notes", ""),
+                "outline": final_state.get("outline", ""),
+                "blog_post": final_state.get("blog_post", ""),
+                "supervisor_feedback": final_state.get("supervisor_feedback", ""),
+                "retry_count": final_state.get("retry_count", 0),
+            })
+
+    except Exception as e:
+        yield _sse({"type": "error", "message": str(e)})
+
+    yield "data: [DONE]\n\n"
+
+
+@app.post("/generate/stream", tags=["Generation"], summary="Generate a blog post with streaming output")
+async def generate_stream(request: BlogRequest):
+    return StreamingResponse(
+        _stream_generate(request.topic),
+        media_type="text/event-stream",
+        headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Non-streaming (kept for /docs testing)
 # ---------------------------------------------------------------------------
 
 @app.post("/generate", response_model=BlogResponse, tags=["Generation"], summary="Generate a blog post")
 async def generate(request: BlogRequest):
-    """
-    Runs the supervised multi-agent pipeline:
-      Supervisor → Researcher → Supervisor → Analyst → Supervisor → Writer → Supervisor → END
-
-    The Supervisor coordinates every step. Agents never call each other directly.
-    Returns the final blog post along with intermediate outputs
-    (outline, research notes) and supervisor metadata (feedback, retry count).
-
-    .NET analogy: A POST action that calls a service, awaits the result,
-    and returns a typed ActionResult<BlogResponse>.
-    """
     try:
         loop = asyncio.get_event_loop()
         runner = BlogRunner()
@@ -72,7 +131,7 @@ async def generate(request: BlogRequest):
             timeout=TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Pipeline timed out (>5 min). Try a smaller model or shorter topic.")
+        raise HTTPException(status_code=504, detail="Pipeline timed out.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

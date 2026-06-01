@@ -1,20 +1,54 @@
-# Debate Graph
+# Debate Graph — Phase 4
+
+## Main Graph
 
 ```mermaid
-flowchart TD
-    START --> load_memory
-    load_memory --> pro_opening
-    pro_opening --> con_opening
-    con_opening --> moderator_route
+graph TD
+    A[START] --> B[load_memory]
+    B --> C[pro_opening]
+    C --> D[con_opening]
+    D --> E[moderator_route]
+    E -->|rebuttal| F[pro_rebuttal]
+    E -->|closing| H[pro_closing]
+    E -->|end| J[moderator]
+    F --> G[con_rebuttal]
+    G --> E
+    H --> I[con_closing]
+    I --> K[human_review]
+    K -->|continue| J
+    K -->|redo| H
+    J --> L[END]
+```
 
-    moderator_route -->|rebuttal| pro_rebuttal
-    moderator_route -->|closing| pro_closing
-    moderator_route -->|end| moderator
+## Debate Flow
 
-    pro_rebuttal --> con_rebuttal
-    con_rebuttal --> moderator_route
+```mermaid
+graph LR
+    A([topic]) --> B[load_memory]
+    B --> C[Pro Opening]
+    C --> D[Con Opening]
+    D --> E{Moderator Route}
+    E -->|rebuttal| F[Pro Rebuttal]
+    F --> G[Con Rebuttal]
+    G --> E
+    E -->|closing| H[Pro Closing]
+    H --> I[Con Closing]
+    I --> K{Human Review}
+    K -->|continue| J[Moderator]
+    K -->|redo| H
+    E -->|end| J
+    J --> L([winner])
+```
 
-    pro_closing --> con_closing
-    con_closing --> moderator
-    moderator --> END
+## Guardrail Layers
+
+```mermaid
+graph LR
+    A([raw topic]) --> B[Rule-based]
+    B -->|pass| C[PII Redaction]
+    C -->|pass| D[LLM Classifier]
+    D -->|pass| E([debate graph])
+    B -->|fail| F([400 Error])
+    D -->|fail| F
+    D -->|classifier down| E
 ```
